@@ -88,28 +88,22 @@ with tab2:
         st.error("The total macronutrient percentage must equal 100%.")
     else:
         if st.button("Generate Diet Plan"):
-            question = f"""
-                {kcal}kcal, {protein_pct}% from proteins, {fat_pct}% from fats, {carb_pct}% from carbohydrates.
-                Favourite foods: {favorite_foods}.
-                Dislike foods: {disliked_foods}.
-                """
-            diet_plan = generate_diet(question)
+            calories = f"{kcal}calories"
+            prefered_foods = favorite_foods
+            disliked_foods = disliked_foods
+       
+            diet_plan = generate_diet(calories, prefered_foods, disliked_foods)
             # diet_plan = "Breakfast, lunch, dinner, snacks"
             st.session_state.diet_plan = diet_plan
  
             if "messages" not in st.session_state:
                 st.session_state.messages = []
-                 
-
-
-    if "diet_plan" in st.session_state:
-        # st.write("Diet Plan Generated:")
-        st.write(st.session_state.diet_plan.content)
-        #  for meal in st.session_state.diet_plan.meals:
-        #     st.write(f"**{meal["meal"]}**")
-        #     df = pd.DataFrame.from_records(meal["ingredients"])
-        #     # df.set_index('ingredient', inplace=True)
-        #     st.dataframe(df)
+                st.session_state.messages.append({"role": "assistant", "content": diet_plan.content})
+            
+            # Add conversation memory to handle multi-turn conversations
+            if not "memory" in st.session_state:
+                st.session_state.memory = ConversationBufferMemory(memory_key="history", return_messages=True)
+            st.session_state.memory.save_context({"input": "question"}, {"output": diet_plan.content})
 
     if "messages" in st.session_state: 
 
@@ -118,12 +112,14 @@ with tab2:
         #     input_variables=["history", "diet_plan", "input"],
         template="""
             You are a dietitian assistant chatbot. You are helping a user with their diet plan.
-            The diet plan is in the context.
-            
+            The user will tell me the changes they want to make to their diet plan. Every time the you change the diet make sure the daily amount of calories, carbohydrates, fats and protein stay close to the amounts of the diet_plan.
+            . When the user asks to add or change some food make only minimal changes to the diet plan.
+
             Conversation History:
             {history}
 
-            Context: {diet_plan}
+            DIET PLAN:
+            {diet_plan}
 
             Human: {input}
             AI:
@@ -134,10 +130,8 @@ with tab2:
         # Initialize the LangChain chat model
         chat_model = ChatOpenAI(temperature=0.7, model="gpt-4o-mini")
 
-        # Add conversation memory to handle multi-turn conversations
-        if not "memory" in st.session_state:
-            st.session_state.memory = ConversationBufferMemory(memory_key="history", return_messages=True)
-            
+        
+
         # Initialize the conversation chain
         conversation = ConversationChain(
             llm=chat_model,
@@ -161,7 +155,6 @@ with tab2:
             with container.chat_message("assistant"):
                 st.write(response)
 
-            st.session_state.memory.save_context({"input": prompt}, {"output": response})
 
   
 
