@@ -5,15 +5,16 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain.prompts import ChatPromptTemplate
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
-from models import DietPlan
-
+import json
 import os
 
-os.environ['LANGCHAIN_TRACING_V2'] = 'true'
-os.environ['LANGCHAIN_ENDPOINT'] = 'https://api.smith.langchain.com'
-os.environ['LANGCHAIN_API_KEY'] = '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'
-os.environ['OPENAI_API_KEY'] = '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'
+with open('config.json', 'r') as file:
+    env = json.load(file)
 
+os.environ['LANGCHAIN_TRACING_V2'] = env['LANGCHAIN_TRACING_V2']
+os.environ['LANGCHAIN_ENDPOINT'] = env['LANGCHAIN_ENDPOINT']
+os.environ['LANGCHAIN_API_KEY'] = env['LANGCHAIN_API_KEY']
+os.environ['OPENAI_API_KEY'] = env['OPENAI_API_KEY']
 
 # load the diet samples
 loader = PyPDFDirectoryLoader("diet_samples/")

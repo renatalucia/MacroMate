@@ -1,9 +1,1 @@
-diet_samples/1800-2000.pdf
-diet_samples/2000-2200.pdf
-diet_samples/2200plus.pdf
-__pycache__/utils.cpython-312.pyc
-__pycache__/models.cpython-312.pyc
-__pycache__/diet.cpython-312.pyc
-__pycache__/chat.cpython-312.pyc
-Plant-Based.pdf
-DietGenerator.ipynb
+app/config.json

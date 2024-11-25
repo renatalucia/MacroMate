@@ -12,10 +12,15 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
 import pandas as pd
+import json
 
+with open('config.json', 'r') as file:
+    env = json.load(file)
 
-os.environ['OPENAI_API_KEY'] = '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'
-
+os.environ['LANGCHAIN_TRACING_V2'] = env['LANGCHAIN_TRACING_V2']
+os.environ['LANGCHAIN_ENDPOINT'] = env['LANGCHAIN_ENDPOINT']
+os.environ['LANGCHAIN_API_KEY'] = env['LANGCHAIN_API_KEY']
+os.environ['OPENAI_API_KEY'] = env['OPENAI_API_KEY']
 
 messages_container = None
 
