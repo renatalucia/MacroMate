@@ -3,9 +3,6 @@ import os
 import streamlit as st
 from utils import calculate_bmr, calculate_tdee, adjust_calories_for_goal, calculate_macros
 from diet import generate_diet
-from models import DietPlan
-from openai import OpenAI
-from chat import open_chat
 import streamlit as st
 from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
