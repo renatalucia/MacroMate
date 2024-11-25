@@ -4,3 +4,4 @@ numpy
 pydantic
 openai
 langchain
+langchain-community langchain-core

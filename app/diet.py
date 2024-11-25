@@ -1,10 +1,5 @@
-from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_openai import ChatOpenAI
-from fpdf import FPDF
-from langchain_core.output_parsers import JsonOutputParser
 from langchain.prompts import ChatPromptTemplate
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
 import json
 import os
 
