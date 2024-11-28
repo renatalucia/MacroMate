@@ -10,6 +10,7 @@ from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
 import pandas as pd
 import json
+import recipe_controller
 
 with open('config.json', 'r') as file:
     env = json.load(file)
@@ -22,7 +23,7 @@ os.environ['OPENAI_API_KEY'] = env['OPENAI_API_KEY']
 messages_container = None
 
 st.title("Macro Mate")
-tab1, tab2 = st.tabs(["Macro Calculator", "Diet Generator"])
+tab1, tab2, tab3 = st.tabs(["Macros Calculator", "Diet Generator", "Food Composition Analyzer"])
 
 if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = "gpt-3.5-turbo"
@@ -91,16 +92,19 @@ with tab2:
     else:
         if st.button("Generate Diet Plan"):
             calories = f"{kcal}calories"
+            print(calories)
             prefered_foods = favorite_foods
             disliked_foods = disliked_foods
        
             diet_plan = generate_diet(calories, prefered_foods, disliked_foods)
+            print(diet_plan)
             # diet_plan = "Breakfast, lunch, dinner, snacks"
             st.session_state.diet_plan = diet_plan
  
             if "messages" not in st.session_state:
                 st.session_state.messages = []
-                st.session_state.messages.append({"role": "assistant", "content": diet_plan.content})
+            
+            st.session_state.messages.append({"role": "assistant", "content": diet_plan.content})
             
             # Add conversation memory to handle multi-turn conversations
             if not "memory" in st.session_state:
@@ -156,6 +160,30 @@ with tab2:
             st.session_state.messages.append({"role": "assistant", "content": response})
             with container.chat_message("assistant"):
                 st.write(response)
+
+# Tab 3: Diet Generator
+with tab3:
+
+    # Input fields for web data source
+    st.subheader("Get Macronutrient Information for your Recipe")
+    recipe_link = st.text_area("Enter the link to your recipe:",
+        placeholder="e.g., https://nutritionfacts.org/recipe/chickpea-chili/")
+    
+    if st.button("Get Nutritional Information"):
+        print("!! Get Nutritional Information !!")
+        print(recipe_link )
+        try:
+            recipe = recipe_controller.get_nutritional_composition(recipe_link)
+            st.write(recipe.nutritional_info)
+        except Exception as e:
+            print(e)
+            st.error("""Error in request to Edamam API.
+                    Not enuoght information to get the nutritional composition of the recipe
+                    or recipe is  in another language """)  
+    
+    
+
+                            
 
 
   
