@@ -55,6 +55,8 @@ def remove_non_food_items ( ingredients_list  ):
 
 def remove_non_quantity_items (ingredients_list):
     print("remove_non_quantity_items")
+    print(ingredients_list)
+    
     template_ingredients_check = """
         Your task is to identify a list of ingredients in {ingredients_list} that do not have an associated quantity.
         If none is found, return an empty string \'\'.
@@ -108,7 +110,7 @@ def get_nutritional_composition(recipe_link):
     ingredients_list = [ingr.strip().lower() for ingr in recipe_output.ingredients.split(",")]
     
     # Remove non-food items from the ingredients list
-    ingredients_list = remove_non_food_items(ingredients_list)
+    # ingredients_list = remove_non_food_items(ingredients_list)
 
     ingredients_list = remove_non_quantity_items(ingredients_list)
 
