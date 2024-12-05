@@ -11,6 +11,7 @@ from langchain.memory import ConversationBufferMemory
 import pandas as pd
 import json
 import recipe_controller
+import nutritional_info_sample as nutritional_info
 
 with open('config.json', 'r') as file:
     env = json.load(file)
@@ -161,25 +162,43 @@ with tab2:
             with container.chat_message("assistant"):
                 st.write(response)
 
-# Tab 3: Diet Generator
+# Tab 3: Recipe Analyzer
 with tab3:
 
     # Input fields for web data source
-    st.subheader("Get Macronutrient Information for your Recipe")
+    st.subheader("Get Nutritional Information for your Recipe")
     recipe_link = st.text_area("Enter the link to your recipe:",
         placeholder="e.g., https://nutritionfacts.org/recipe/chickpea-chili/")
     
-    if st.button("Get Nutritional Information"):
+    
+    get_info_btn = st.button("Get Nutritional Information")
+    if "get_info_btn_state" not in st.session_state:
+        st.session_state.get_info_btn_state = False
+
+    if get_info_btn or st.session_state.get_info_btn_state:
+        st.session_state.get_info_btn_state = True
         print("!! Get Nutritional Information !!")
         print(recipe_link )
         try:
-            recipe = recipe_controller.get_nutritional_composition(recipe_link)
-            st.write(recipe.nutritional_info)
+            recipe_info, recipe_totals = recipe_controller.read_recipe_from_web(recipe_link)
+            print(recipe_info)
+            # st.write(recipe_info)
+
+            df = pd.DataFrame(
+                # nutritional_info.format_nutritional_info(nutritional_info.nutritional_info)
+                nutritional_info.format_nutritional_info(recipe_info)
+            )
+            edited_df = st.data_editor(df, hide_index=True, 
+                                       disabled=nutritional_info.non_editable_columns(),
+                                       column_config={"user_input": ""}
+                                       )
+          
+
+            # st.write(recipe_totals)
         except Exception as e:
             print(e)
-            st.error("""Error in request to Edamam API.
-                    Not enuoght information to get the nutritional composition of the recipe
-                    or recipe is  in another language """)  
+            st.error("""Error in request to  API.
+                   \nPlease check the recipe link and try again.""")  
     
     
 

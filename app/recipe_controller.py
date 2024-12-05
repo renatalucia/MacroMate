@@ -1,11 +1,13 @@
 import json
 import os
 from langchain_community.document_loaders import WebBaseLoader
+from langchain.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-import recipe
+from gliner import GLiNER
 import requests
+import json
+import pandas as pd
 
 
 # Open and read the JSON file
@@ -21,9 +23,16 @@ os.environ['OPENAI_API_KEY'] = env['OPENAI_API_KEY']
 # LLM model
 model = ChatOpenAI(model="gpt-3.5-turbo-0125", temperature=0)
 
+# Name entity recognition model
+ner_model = GLiNER.from_pretrained("urchade/gliner_medium-v2.1")
+
+# Labels for entity prediction
+# Most GLiNER models should work best when entity types are in lower case or title case
+ner_labels = ["quantity", "food"]
+
 
 # Structure for LLM output
-class RecipeStructure(BaseModel):
+class Recipe(BaseModel):
     name: str = Field(description="name")
     ingredients: str = Field(description="ingredients")
     instructions: str = Field(description="instructions to prepare the recipe")
@@ -31,121 +40,111 @@ class RecipeStructure(BaseModel):
 
 
 
-def remove_non_food_items ( ingredients_list  ):
-    template_nonfood_check = """
-        Your task is to identify a list (separated by \',\') of items in {ingredients_list} that are not food.
-        If none is found, return an empty string.
-        Examples of items that are not food: pressed, diced, sliced, cut, peeled"""
-    
-    # Prompt
-    prompt_nonfood_check = ChatPromptTemplate.from_template(template_nonfood_check)
+def read_recipe_from_web(recipe_link):
 
-    # Chain
-    chain = prompt_nonfood_check | model
+    # Large language model to extract recipe information
 
-    non_food_list_str = chain.invoke({"ingredients_list": ", ".join(ingredients_list)})
-    non_food_list = non_food_list_str.content.split(",")
-
-    for item in non_food_list:
-        item = item.strip()
-        if item in ingredients_list:
-            ingredients_list.remove(item)
-    
-    return ingredients_list
-
-def remove_non_quantity_items (ingredients_list):
-    print("remove_non_quantity_items")
-    print(ingredients_list)
-    
-    template_ingredients_check = """
-        Your task is to identify a list of ingredients in {ingredients_list} that do not have an associated quantity.
-        If none is found, return an empty string \'\'.
-        The items in the list should be separated by \',\'.
-        """
-
-
-    # Prompt
-    prompt_ingredients_check = ChatPromptTemplate.from_template(template_ingredients_check)
-
-    chain_ingredients_check = prompt_ingredients_check | model 
-
-    non_qty_list_str = chain_ingredients_check.invoke({"ingredients_list": ", ".join(ingredients_list)})
-
-    print(non_qty_list_str)
-    non_qty_list = non_qty_list_str.content.split(",")
-
-    print("Here")
-    print(non_qty_list)
-
-    for item in non_qty_list:
-        item = item.strip()
-        print(item)
-        if item.lower() in ingredients_list:
-            ingredients_list.remove(item)
-
-    return ingredients_list
-
-
-
-
-def get_nutritional_composition(recipe_link):
-    # Prompt template
+    # Prmpt template
     template = """
     Your task is to identify the name, number of servings, the list (separated by \',\') of ingredients  with their quantities, and instructions of {input_recipe}.
     If you cannot identify any of these fields assign them the empty string \'\'.
     """
-
-    # Prompt
+    # LLM Prompt
     prompt = ChatPromptTemplate.from_template(template)
 
-    structured_llm = model.with_structured_output(RecipeStructure)
-
-    chain = prompt | structured_llm
-    
+    # Load Recipe from the web
     loader = WebBaseLoader(recipe_link)
-    recipe_doc = loader.load()
-    recipe_output = chain.invoke({"input_recipe":recipe_doc})
+    doc = loader.load() 
 
+    # language model with structured output
+    structured_llm = model.with_structured_output(Recipe)
+    chain = prompt | structured_llm
+
+    # Invoke  chain
+    rec = chain.invoke({"input_recipe":doc})
+
+    # Entity Recognition to extract food and quantiies for API request
     
-    ingredients_list = [ingr.strip().lower() for ingr in recipe_output.ingredients.split(",")]
+    # Store entries for API call
+    entity_ingredients = []
+
+    print(rec.ingredients.split(","))
+
+    # texts for entity prediction
+    for text in rec.ingredients.split(","):
+        # Perform entity prediction
+        entities = ner_model.predict_entities(text, ner_labels, threshold=0.5)
+        
+        # Display predicted entities and their labels
+        food = quantity = ""
+        for entity in entities:
+            # print(entity["text"], "=>", entity["label"])
+            if (not food) and (entity["label"]=="food"):
+                food = entity["text"]
+            if (not quantity) and (entity["label"]=="quantity"):
+                quantity = entity["text"]
+        if food and quantity:
+            entity_ingredients.append(f"{quantity} {food}")
+        
+
+    print("************")
+    print(entity_ingredients)
     
-    # Remove non-food items from the ingredients list
-    # ingredients_list = remove_non_food_items(ingredients_list)
+    # Call nutritionix API for nutritional values
+    url = 'https://trackapi.nutritionix.com/v2/natural/nutrients'
 
-    ingredients_list = remove_non_quantity_items(ingredients_list)
-
-    print(ingredients_list)
-
-    # Request to Edamam API
-    url = f"https://api.edamam.com/api/nutrition-details?app_id={env["EDAMAMA_ID"]}&app_key={env["EDAMAMA_KEY"]}&beta=true&kitchen=home"
-
-    json_post = {
-    "title": "string",
-    "ingr": ingredients_list,
-    "summary": "summary",
-    "yield": "string",
-    "time": "string",
-    "img": "string",
-    "prep": [
-        "string"
-    ]
+    headers = {
+        'Content-Type': 'application/json',
+        'x-app-id': env["x-app-id"],
+        'x-app-key': env["x-app-key"]
     }
 
-    try:
-        response = requests.post(url=url, json=json_post)
-        json_response = json.loads(response.text)
-        composition = {}
-        for values in json_response["totalNutrients"].values():
-            composition[values['label']] = f"{int(values['quantity'])}{values['unit']}"  
+    nutritional_info = []
+    recipe_totals = {
+        "calories": 0,
+        "total_fat": 0,
+        "saturated_fat": 0,
+        "total_carbohydrate": 0,
+        "dietary_fiber": 0,
+        "sugars": 0,
+        "protein": 0
+    }
 
-        return  recipe.Recipe(
-            recipe_output.name, 
-            recipe_link, 
-            recipe_output.instructions, 
-            recipe_output.ingredients, 
-            recipe_output.servings, 
-            composition)   
-    except requests.exceptions.RequestException as e:
-        print("Error in request to Edamam API")
-        raise e  
+    for ingredient in entity_ingredients:
+        json_obj = {'query': ingredient}
+        x = requests.post(url, headers = headers, json = json_obj)
+        parsed = json.loads(x.text)
+        print("---------")
+        print(parsed)
+        for food in parsed["foods"]:
+            print(food["food_name"])
+            # get info for each food
+            food_info = {}
+            food_info["user_input"] = ingredient
+            food_info["food_name"] = food["food_name"]
+            food_info["serving_qty"] = food["serving_qty"]
+            food_info["serving_unit"] = food["serving_unit"]
+            food_info["serving_weight_grams"] = food["serving_weight_grams"]
+            food_info["nf_calories"] = food["nf_calories"]
+            food_info["nf_total_fat"] = food["nf_total_fat"]
+            food_info["nf_saturated_fat"] = food["nf_saturated_fat"]
+            food_info["nf_total_carbohydrate"] = food["nf_total_carbohydrate"]
+            food_info["nf_dietary_fiber"] = food["nf_dietary_fiber"]
+            food_info["nf_sugars"] = food["nf_sugars"]
+            food_info["nf_protein"] = food["nf_protein"]
+            nutritional_info.append(food_info)
+
+            
+
+            # update recipe totals
+            recipe_totals ["calories"] += food_info.get("nf_calories", 0) or 0
+            recipe_totals ["total_fat"] += food_info.get("nf_total_fat", 0) or 0
+            recipe_totals ["saturated_fat"] += food_info.get("nf_saturated_fat", 0) or 0
+            recipe_totals ["total_carbohydrate"] += food_info.get("nf_total_carbohydrate", 0) or 0
+            recipe_totals ["dietary_fiber"] += food_info.get("nf_dietary_fiber", 0) or 0
+            recipe_totals ["sugars"] += food_info.get("nf_sugars", 0) or 0
+            recipe_totals ["protein"] += food_info.get("nf_protein", 0) or 0
+
+
+    return nutritional_info, recipe_totals
     
