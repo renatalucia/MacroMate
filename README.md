@@ -10,7 +10,7 @@ This repository hosts the code for an AI-based web application designed to assis
 - Option to create diets from a collection of recipes.
 
 ### Integrated Nutrition Data
-- Connects to Open Food Facts to fetch accurate and reliable nutritional values.
+- Connects to Nutrionix API to fetch accurate and reliable nutritional values.
 
 ### Interactive Chatbot
 - Enables users to refine and adapt their diet plans according to their preferences in real time.
