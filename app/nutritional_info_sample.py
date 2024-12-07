@@ -126,6 +126,7 @@ def format_nutritional_info(nutritional_info):
             {
                 "user_input": food["user_input"],
                 "Food": food["food_name"],
+                "Food_alternative": ["Select", food["food_name"], 'alternative1', 'alternative2'],
                 "Quantity": food["serving_qty"],
                 "Unit": food["serving_unit"],
                 "Calories": food["nf_calories"],

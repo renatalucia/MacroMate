@@ -29,6 +29,29 @@ tab1, tab2, tab3 = st.tabs(["Macros Calculator", "Diet Generator", "Food Composi
 if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = "gpt-3.5-turbo"
 
+# def update_quantity(df, edited_df):
+#     print("update_quantity")
+#     for index, row in edited_df.iterrows():
+#         factor = row["Quantity"]/df.loc[index, "Quantity"]
+#         row["Calories"] = df.loc[index, "Calories"] * factor
+#     return edited_df
+
+def get_exapnd_text(ingredient_details):
+    return f"{ingredient_name} - {ingredient_quantity} ({ingredient_details["Calories"]}kcal)"
+
+def update_nutritional_values(edited_df):
+    print("update_nutritional_values")
+    for index, row in edited_df.iterrows():
+        print(row["Quantity"])
+        print(st.session_state.df.loc[index, "Quantity"])
+        factor = row["Quantity"]/st.session_state.df.loc[index, "Quantity"]
+        print(factor)
+        edited_df.loc[index, "Calories"] = st.session_state.df.loc[index, "Calories"] * factor
+        edited_df.loc[index, "Calories"] = st.session_state.df.loc[index, "Calories"] * factor
+    print(edited_df["Calories"])
+    st.session_state.df = edited_df
+    # st.rerun()
+
 
 # Tab 1: Macro Calculator
 with tab1:
@@ -166,41 +189,80 @@ with tab2:
 with tab3:
 
     # Input fields for web data source
-    st.subheader("Get Nutritional Information for your Recipe")
+    st.header("Get Nutritional Information for your Recipe")
     recipe_link = st.text_area("Enter the link to your recipe:",
         placeholder="e.g., https://nutritionfacts.org/recipe/chickpea-chili/")
     
     
     get_info_btn = st.button("Get Nutritional Information")
-    if "get_info_btn_state" not in st.session_state:
-        st.session_state.get_info_btn_state = False
-
-    if get_info_btn or st.session_state.get_info_btn_state:
-        st.session_state.get_info_btn_state = True
-        print("!! Get Nutritional Information !!")
-        print(recipe_link )
+    
+    if get_info_btn:
         try:
             recipe_info, recipe_totals = recipe_controller.read_recipe_from_web(recipe_link)
-            print(recipe_info)
+            # print(recipe_info)
             # st.write(recipe_info)
 
-            df = pd.DataFrame(
+            st.session_state.df = pd.DataFrame(
                 # nutritional_info.format_nutritional_info(nutritional_info.nutritional_info)
                 nutritional_info.format_nutritional_info(recipe_info)
             )
-            edited_df = st.data_editor(df, hide_index=True, 
-                                       disabled=nutritional_info.non_editable_columns(),
-                                       column_config={"user_input": ""}
-                                       )
-          
 
-            # st.write(recipe_totals)
         except Exception as e:
             print(e)
             st.error("""Error in request to  API.
                    \nPlease check the recipe link and try again.""")  
     
+    if "df" in st.session_state:
+
+        st.subheader("Recipe Ingredients")
+
+        # Loop through the ingredients and create an expander for each one
+        for idx, row in st.session_state.df.iterrows():
+            print(row)
+            ingredient_name = row["Food"]
+            ingredient_quantity = row["Quantity"]
+
+            # Use st.expander to simulate a popover
+            with st.expander(get_exapnd_text(row), expanded=False):
+                # Dropdown to replace ingredient
+                new_ingredient = st.selectbox(
+                    f"Replace with:", 
+                    row["Food_alternative"],
+                    key=f"{ingredient_name}_dropdown"
+                )
+
+                # Textbox to edit the quantity
+                new_quantity = st.text_input(
+                    f"Edit quantity of {ingredient_name}:",
+                    value=ingredient_quantity,
+                    key=f"{ingredient_name}_quantity"
+                )
+
+                # Update the ingredient and quantity in session_state
+                if new_ingredient != "Select":
+                    st.session_state.df.loc[idx, 'Food'] = new_ingredient
+                if new_quantity != ingredient_quantity:
+                    st.session_state.df.loc[idx, 'Quantity'] = new_quantity
+
+                # Display the selected options
+                if new_ingredient != "Select":
+                    st.write(f"Replacement: {st.session_state.df.loc[idx, 'Food']}")
+                if new_quantity != ingredient_quantity:
+                    st.write(f"New Quantity: {st.session_state.df.loc[idx, 'Quantity']}")
+
+                # Trigger a re-run to reflect the changes
+                if new_ingredient != "Select" and new_ingredient != ingredient_name or new_quantity != ingredient_quantity:
+                    st.rerun()
+
+                
+
+                       
+  
+
+ 
     
+    
+
 
                             
 
