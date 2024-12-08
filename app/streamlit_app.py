@@ -29,13 +29,6 @@ tab1, tab2, tab3 = st.tabs(["Macros Calculator", "Diet Generator", "Food Composi
 if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = "gpt-3.5-turbo"
 
-# def update_quantity(df, edited_df):
-#     print("update_quantity")
-#     for index, row in edited_df.iterrows():
-#         factor = row["Quantity"]/df.loc[index, "Quantity"]
-#         row["Calories"] = df.loc[index, "Calories"] * factor
-#     return edited_df
-
 
 def get_exapnd_text(ingredient_details):
     # TODO: Include other nutritional values
@@ -195,13 +188,13 @@ with tab3:
     
     if get_info_btn:
         try:
-            # recipe_info, recipe_totals = recipe_controller.read_recipe_from_web(recipe_link)
-
-            st.session_state.df = pd.DataFrame(
-                nutritional_info.format_nutritional_info(nutritional_info.nutritional_info))
+            recipe_info, recipe_totals = recipe_controller.read_recipe_from_web(recipe_link)
 
             # st.session_state.df = pd.DataFrame(
-            #     nutritional_info.format_nutritional_info(recipe_info))
+            #     nutritional_info.format_nutritional_info(nutritional_info.nutritional_info))
+
+            st.session_state.df = pd.DataFrame(
+                nutritional_info.format_nutritional_info(recipe_info))
             
 
         except Exception as e:
