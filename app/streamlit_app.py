@@ -36,21 +36,18 @@ if "openai_model" not in st.session_state:
 #         row["Calories"] = df.loc[index, "Calories"] * factor
 #     return edited_df
 
-def get_exapnd_text(ingredient_details):
-    return f"{ingredient_name} - {ingredient_quantity} ({ingredient_details["Calories"]}kcal)"
 
-def update_nutritional_values(edited_df):
-    print("update_nutritional_values")
-    for index, row in edited_df.iterrows():
-        print(row["Quantity"])
-        print(st.session_state.df.loc[index, "Quantity"])
-        factor = row["Quantity"]/st.session_state.df.loc[index, "Quantity"]
-        print(factor)
-        edited_df.loc[index, "Calories"] = st.session_state.df.loc[index, "Calories"] * factor
-        edited_df.loc[index, "Calories"] = st.session_state.df.loc[index, "Calories"] * factor
-    print(edited_df["Calories"])
-    st.session_state.df = edited_df
-    # st.rerun()
+def get_exapnd_text(ingredient_details):
+    # TODO: Include other nutritional values
+    return f"{ingredient_details["Food"]} - {ingredient_details["Quantity"]} {ingredient_details["Unit"]} ({ingredient_details["Calories"]}kcal)"
+
+def update_quantity(index, new_quantity):
+    # TODO: Handle Exception converting string to float
+    factor = float(new_quantity)/float(st.session_state.df.loc[index, "Quantity"])
+    # TODO: Update other nutritional values
+    st.session_state.df.loc[index, "Calories"] = st.session_state.df.loc[index, "Calories"] * factor
+    st.session_state.df.loc[idx, 'Quantity'] = new_quantity
+
 
 
 # Tab 1: Macro Calculator
@@ -198,15 +195,13 @@ with tab3:
     
     if get_info_btn:
         try:
-            recipe_info, recipe_totals = recipe_controller.read_recipe_from_web(recipe_link)
-            # print(recipe_info)
-            # st.write(recipe_info)
-
-            # st.session_state.df = pd.DataFrame(
-            #     nutritional_info.format_nutritional_info(nutritional_info.nutritional_info))
+            # recipe_info, recipe_totals = recipe_controller.read_recipe_from_web(recipe_link)
 
             st.session_state.df = pd.DataFrame(
-                nutritional_info.format_nutritional_info(recipe_info))
+                nutritional_info.format_nutritional_info(nutritional_info.nutritional_info))
+
+            # st.session_state.df = pd.DataFrame(
+            #     nutritional_info.format_nutritional_info(recipe_info))
             
 
         except Exception as e:
@@ -243,8 +238,13 @@ with tab3:
                 # Update the ingredient and quantity in session_state
                 if new_ingredient != "Select":
                     st.session_state.df.loc[idx, 'Food'] = new_ingredient
+                    # TODO: Move updating code to a function
+                    nutritional_values = recipe_controller.food_nutritional_info(new_ingredient)
+                    st.session_state.df.loc[idx, 'Calories'] = nutritional_values["nf_calories"]
+                    st.session_state.df.loc[idx, 'Quantity'] = nutritional_values["serving_qty"]
+                    st.session_state.df.loc[idx, 'Unit'] = nutritional_values["serving_unit"]
                 if new_quantity != ingredient_quantity:
-                    st.session_state.df.loc[idx, 'Quantity'] = new_quantity
+                    update_quantity(idx, new_quantity)
 
                 # Display the selected options
                 if new_ingredient != "Select":

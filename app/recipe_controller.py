@@ -122,7 +122,6 @@ def read_recipe_from_web(recipe_link):
         x_alternatives = requests.get(url_alternatives, headers = headers)
         parsed_alternatives = json.loads(x_alternatives.text)
 
-        print("Herrrreeeee")
         for food in parsed["foods"]:
             food_alternatives = [alt['food_name'] for alt in parsed_alternatives['common']]
             print(food["food_name"])
@@ -155,4 +154,29 @@ def read_recipe_from_web(recipe_link):
 
 
     return nutritional_info, recipe_totals
+
+def food_nutritional_info (food_name):
+    headers = {
+        'Content-Type': 'application/json',
+        'x-app-id': env["x-app-id"],
+        'x-app-key': env["x-app-key"]
+    }
+    url = 'https://trackapi.nutritionix.com/v2/natural/nutrients'
+    json_obj = {'query': food_name}
+    x = requests.post(url, headers = headers, json = json_obj)
+    parsed = json.loads(x.text)
+    food = parsed["foods"][0]
+    food_info = {}
+    food_info["food_name"] = food["food_name"]
+    food_info["serving_qty"] = food["serving_qty"]
+    food_info["serving_unit"] = food["serving_unit"]
+    food_info["serving_weight_grams"] = food["serving_weight_grams"]
+    food_info["nf_calories"] = food["nf_calories"]
+    food_info["nf_total_fat"] = food["nf_total_fat"]
+    food_info["nf_saturated_fat"] = food["nf_saturated_fat"]
+    food_info["nf_total_carbohydrate"] = food["nf_total_carbohydrate"]
+    food_info["nf_dietary_fiber"] = food["nf_dietary_fiber"]
+    food_info["nf_sugars"] = food["nf_sugars"]
+    food_info["nf_protein"] = food["nf_protein"]
+    return food_info
     
