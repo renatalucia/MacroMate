@@ -202,13 +202,15 @@ with tab3:
             # print(recipe_info)
             # st.write(recipe_info)
 
+            # st.session_state.df = pd.DataFrame(
+            #     nutritional_info.format_nutritional_info(nutritional_info.nutritional_info))
+
             st.session_state.df = pd.DataFrame(
-                # nutritional_info.format_nutritional_info(nutritional_info.nutritional_info)
-                nutritional_info.format_nutritional_info(recipe_info)
-            )
+                nutritional_info.format_nutritional_info(recipe_info))
+            
 
         except Exception as e:
-            print(e)
+            st.error (e)
             st.error("""Error in request to  API.
                    \nPlease check the recipe link and try again.""")  
     
@@ -218,7 +220,7 @@ with tab3:
 
         # Loop through the ingredients and create an expander for each one
         for idx, row in st.session_state.df.iterrows():
-            print(row)
+            #print(row)
             ingredient_name = row["Food"]
             ingredient_quantity = row["Quantity"]
 
@@ -227,7 +229,7 @@ with tab3:
                 # Dropdown to replace ingredient
                 new_ingredient = st.selectbox(
                     f"Replace with:", 
-                    row["Food_alternative"],
+                    row["Food_alternatives"],
                     key=f"{ingredient_name}_dropdown"
                 )
 

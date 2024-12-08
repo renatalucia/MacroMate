@@ -42,6 +42,8 @@ class Recipe(BaseModel):
 
 def read_recipe_from_web(recipe_link):
 
+    print("----->>>>Reading recipe from the web")
+
     # Large language model to extract recipe information
 
     # Prmpt template
@@ -87,8 +89,8 @@ def read_recipe_from_web(recipe_link):
             entity_ingredients.append(f"{quantity} {food}")
         
 
-    print("************")
-    print(entity_ingredients)
+    #print("************")
+    #print(entity_ingredients)
     
     # Call nutritionix API for nutritional values
     url = 'https://trackapi.nutritionix.com/v2/natural/nutrients'
@@ -110,18 +112,26 @@ def read_recipe_from_web(recipe_link):
         "protein": 0
     }
 
+    print("Before for ingredient in entity_ingredients")
     for ingredient in entity_ingredients:
         json_obj = {'query': ingredient}
         x = requests.post(url, headers = headers, json = json_obj)
         parsed = json.loads(x.text)
-        print("---------")
-        print(parsed)
+
+        url_alternatives = f'https://trackapi.nutritionix.com/v2/search/instant/?query={ingredient}'
+        x_alternatives = requests.get(url_alternatives, headers = headers)
+        parsed_alternatives = json.loads(x_alternatives.text)
+
+        print("Herrrreeeee")
         for food in parsed["foods"]:
+            food_alternatives = [alt['food_name'] for alt in parsed_alternatives['common']]
             print(food["food_name"])
+            print(food_alternatives)
             # get info for each food
             food_info = {}
             food_info["user_input"] = ingredient
             food_info["food_name"] = food["food_name"]
+            food_info["food_alternatives"] = food_alternatives
             food_info["serving_qty"] = food["serving_qty"]
             food_info["serving_unit"] = food["serving_unit"]
             food_info["serving_weight_grams"] = food["serving_weight_grams"]
@@ -133,8 +143,6 @@ def read_recipe_from_web(recipe_link):
             food_info["nf_sugars"] = food["nf_sugars"]
             food_info["nf_protein"] = food["nf_protein"]
             nutritional_info.append(food_info)
-
-            
 
             # update recipe totals
             recipe_totals ["calories"] += food_info.get("nf_calories", 0) or 0
