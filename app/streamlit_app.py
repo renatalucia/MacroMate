@@ -32,16 +32,45 @@ if "openai_model" not in st.session_state:
 
 def get_exapnd_text(ingredient_details):
     # TODO: Include other nutritional values
-    return f"{ingredient_details["Food"]} - {ingredient_details["Quantity"]} {ingredient_details["Unit"]} ({ingredient_details["Calories"]}kcal)"
+    return f"""***{ingredient_details["Food"]} - {ingredient_details["Quantity"]} 
+        {ingredient_details["Unit"]}***
+        ({ingredient_details["Calories"]}kcal, 
+        {ingredient_details["Protein"]}g Protein, {ingredient_details["Total Carbs"]}g Total Carbs,
+        {ingredient_details["Fiber"]}g Fiber, {ingredient_details["Sugars"]}g Sugars, 
+        {ingredient_details["Total Fat"]}g Total Fat,
+        {ingredient_details["Saturated Fat"]}g Saturated Fat)
+        """
 
 def update_quantity(index, new_quantity):
     # TODO: Handle Exception converting string to float
     factor = float(new_quantity)/float(st.session_state.df.loc[index, "Quantity"])
     # TODO: Update other nutritional values
     st.session_state.df.loc[index, "Calories"] = st.session_state.df.loc[index, "Calories"] * factor
+    st.session_state.df.loc[index, "Total Fat"] = st.session_state.df.loc[index, "Total Fat"] * factor
+    st.session_state.df.loc[index, "Saturated Fat"] = st.session_state.df.loc[index, "Saturated Fat"] * factor
+    st.session_state.df.loc[index, "Protein"] = st.session_state.df.loc[index, "Protein"] * factor
+    st.session_state.df.loc[index, "Total Carbs"] = st.session_state.df.loc[index, "Total Carbs"] * factor
+    st.session_state.df.loc[index, "Fiber"] = st.session_state.df.loc[index, "Fiber"] * factor
+    st.session_state.df.loc[index, "Sugars"] = st.session_state.df.loc[index, "Sugars"] * factor
     st.session_state.df.loc[idx, 'Quantity'] = new_quantity
 
+    st.session_state.recipe_totals = recipe_controller.calculate_totals(st.session_state.df)
 
+def update_ingredient(idx, new_ingredient):
+    query = f"{st.session_state.df.loc[idx, 'Quantity']} {st.session_state.df.loc[idx, 'Unit']} {new_ingredient}"   
+    nutritional_values = recipe_controller.food_nutritional_info(query)
+    st.session_state.df.loc[idx, 'Food'] = nutritional_values["food_name"]
+    st.session_state.df.loc[idx, 'Calories'] = nutritional_values["nf_calories"]
+    st.session_state.df.loc[idx, 'Total Fat'] = nutritional_values["nf_total_fat"]
+    st.session_state.df.loc[idx, 'Saturated Fat'] = nutritional_values["nf_saturated_fat"]
+    st.session_state.df.loc[idx, 'Protein'] = nutritional_values["nf_protein"]
+    st.session_state.df.loc[idx, 'Total Carbs'] = nutritional_values["nf_total_carbohydrate"]
+    st.session_state.df.loc[idx, 'Fiber'] = nutritional_values["nf_dietary_fiber"]
+    st.session_state.df.loc[idx, 'Sugars'] = nutritional_values["nf_sugars"]
+    st.session_state.df.loc[idx, 'Quantity'] = nutritional_values["serving_qty"]
+    st.session_state.df.loc[idx, 'Unit'] = nutritional_values["serving_unit"]
+
+    st.session_state.recipe_totals = recipe_controller.calculate_totals(st.session_state.df)
 
 # Tab 1: Macro Calculator
 with tab1:
@@ -192,10 +221,12 @@ with tab3:
 
             # st.session_state.df = pd.DataFrame(
             #     nutritional_info.format_nutritional_info(nutritional_info.nutritional_info))
+            # recipe_totals = nutritional_info.recipe_totals
 
             st.session_state.df = pd.DataFrame(
                 nutritional_info.format_nutritional_info(recipe_info))
             
+            st.session_state.recipe_totals = recipe_totals
 
         except Exception as e:
             st.error (e)
@@ -204,6 +235,26 @@ with tab3:
     
     if "df" in st.session_state:
 
+        st.subheader("Recipe Nutritional Information")
+        
+        # Display the recipe totals in a more structured format
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown(f"<h3 style='font-size:16px;'>Total Calories: {st.session_state.recipe_totals['calories']:.2f} kcal</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='font-size:16px;'>Total Protein: {st.session_state.recipe_totals['protein']:.2f} g</h3>", unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown(f"<h3 style='font-size:16px;'>Total Carbs: {st.session_state.recipe_totals['total_carbs']:.2f} g</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='font-size:16px;'>Fiber: {st.session_state.recipe_totals['fiber']:.2f} g</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='font-size:16px;'>Sugar: {st.session_state.recipe_totals['sugar']:.2f} g</h3>", unsafe_allow_html=True)
+        
+        with col3:
+            st.markdown(f"<h3 style='font-size:16px;'>Total Fat: {st.session_state.recipe_totals['total_fat']:.2f} g</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='font-size:16px;'>Saturated Fat: {st.session_state.recipe_totals['saturated_fat']:.2f} g</h3>", unsafe_allow_html=True)
+        
+        
+        
         st.subheader("Recipe Ingredients")
 
         # Loop through the ingredients and create an expander for each one
@@ -230,25 +281,15 @@ with tab3:
 
                 # Update the ingredient and quantity in session_state
                 if new_ingredient != "Select":
-                    st.session_state.df.loc[idx, 'Food'] = new_ingredient
-                    # TODO: Move updating code to a function
-                    nutritional_values = recipe_controller.food_nutritional_info(new_ingredient)
-                    st.session_state.df.loc[idx, 'Calories'] = nutritional_values["nf_calories"]
-                    st.session_state.df.loc[idx, 'Quantity'] = nutritional_values["serving_qty"]
-                    st.session_state.df.loc[idx, 'Unit'] = nutritional_values["serving_unit"]
+                    update_ingredient(idx, new_ingredient)
+                    
                 if new_quantity != ingredient_quantity:
                     update_quantity(idx, new_quantity)
-
-                # Display the selected options
-                if new_ingredient != "Select":
-                    st.write(f"Replacement: {st.session_state.df.loc[idx, 'Food']}")
-                if new_quantity != ingredient_quantity:
-                    st.write(f"New Quantity: {st.session_state.df.loc[idx, 'Quantity']}")
 
                 # Trigger a re-run to reflect the changes
                 if new_ingredient != "Select" and new_ingredient != ingredient_name or new_quantity != ingredient_quantity:
                     st.rerun()
-
+            
                 
 
                        

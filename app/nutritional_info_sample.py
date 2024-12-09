@@ -319,15 +319,19 @@ nutritional_info = [{'user_input': '½ cup cooked moong dal',
   'nf_sugars': 0,
   'nf_protein': 0.05}]
 
+recipe_totals = {'calories': 556.3599999999999,
+ 'total_fat': 7.8999999999999995,
+ 'saturated_fat': 0.97,
+ 'total_carbs': 97.42,
+ 'fiber': 22.869999999999997,
+ 'sugar': 10.72,
+ 'protein': 27.82}
+
 def format_nutritional_info(nutritional_info):
-    print("@@@@@@@@@")
-    print("format_nutritional_info")
     formatted_info = []
     for food in nutritional_info:
         
         food["food_alternatives"].insert(0, "Select")
-        print(food["food_alternatives"])
-        print(food["food_name"])
         formatted_info.append(
             {
                 "user_input": food["user_input"],
@@ -338,7 +342,7 @@ def format_nutritional_info(nutritional_info):
                 "Calories": food["nf_calories"],
                 "Total Fat": food["nf_total_fat"],
                 "Saturated Fat": food["nf_saturated_fat"],
-                "Total Carbohydrate": food["nf_total_carbohydrate"],
+                "Total Carbs": food["nf_total_carbohydrate"],
                 "Fiber": food["nf_dietary_fiber"],
                 "Sugars": food["nf_sugars"],
                 "Protein": food["nf_protein"]

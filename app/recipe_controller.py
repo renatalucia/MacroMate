@@ -88,10 +88,6 @@ def read_recipe_from_web(recipe_link):
         if food and quantity:
             entity_ingredients.append(f"{quantity} {food}")
         
-
-    #print("************")
-    #print(entity_ingredients)
-    
     # Call nutritionix API for nutritional values
     url = 'https://trackapi.nutritionix.com/v2/natural/nutrients'
 
@@ -106,9 +102,9 @@ def read_recipe_from_web(recipe_link):
         "calories": 0,
         "total_fat": 0,
         "saturated_fat": 0,
-        "total_carbohydrate": 0,
-        "dietary_fiber": 0,
-        "sugars": 0,
+        "total_carbs": 0,
+        "fiber": 0,
+        "sugar": 0,
         "protein": 0
     }
 
@@ -147,9 +143,9 @@ def read_recipe_from_web(recipe_link):
             recipe_totals ["calories"] += food_info.get("nf_calories", 0) or 0
             recipe_totals ["total_fat"] += food_info.get("nf_total_fat", 0) or 0
             recipe_totals ["saturated_fat"] += food_info.get("nf_saturated_fat", 0) or 0
-            recipe_totals ["total_carbohydrate"] += food_info.get("nf_total_carbohydrate", 0) or 0
-            recipe_totals ["dietary_fiber"] += food_info.get("nf_dietary_fiber", 0) or 0
-            recipe_totals ["sugars"] += food_info.get("nf_sugars", 0) or 0
+            recipe_totals ["total_carbs"] += food_info.get("nf_total_carbohydrate", 0) or 0
+            recipe_totals ["fiber"] += food_info.get("nf_dietary_fiber", 0) or 0
+            recipe_totals ["sugar"] += food_info.get("nf_sugars", 0) or 0
             recipe_totals ["protein"] += food_info.get("nf_protein", 0) or 0
 
 
@@ -179,4 +175,15 @@ def food_nutritional_info (food_name):
     food_info["nf_sugars"] = food["nf_sugars"]
     food_info["nf_protein"] = food["nf_protein"]
     return food_info
-    
+
+def calculate_totals (recipe_df):
+    recipe_totals = {
+        "calories": recipe_df["Calories"].sum(),
+        "total_fat": recipe_df["Total Fat"].sum(),
+        "saturated_fat": recipe_df["Saturated Fat"].sum(),
+        "total_carbs": recipe_df["Total Carbs"].sum(),
+        "fiber": recipe_df["Fiber"].sum(),
+        "sugar": recipe_df["Sugars"].sum(),
+        "protein": recipe_df["Protein"].sum()
+    }
+    return recipe_totals        
